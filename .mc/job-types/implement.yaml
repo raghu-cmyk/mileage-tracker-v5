@@ -1,0 +1,56 @@
+type: implement
+description: Generic implementation stage. Turn a story (description + acceptance) into working code committed to a GitHub branch on the target repository. Domain-neutral; subject and target repo enter via the backlog item and runtime config.
+domain: neutral
+context:
+  references: []
+  skills: []
+  upstream_artifacts: []
+loop:
+  mode: interval
+  interval_sec: 30
+  max_iterations: 5
+  iteration_timeout_sec: 1800
+  overall_timeout_sec: 14400
+  done_when:
+    # Acceptance gate: no incomplete-work markers remain in the produced code.
+    - gate: no_todo_markers
+      params:
+        scope: "workspace"
+        markers: ["TODO", "FIXME", "XXX", "HACK"]
+  on_max_reached: exhausted
+prompt_template: |
+  You are an implementation agent. Implement the assigned story as working code
+  and commit it to a feature branch on the target repository (GitHub MCP server).
+
+  Inputs (from the backlog item):
+  - Story: {story_title}
+  - Details: {story_description}
+  - Acceptance: {acceptance}
+
+  Steps:
+  1. Create (or reuse) a feature branch off the integration branch on the target repo.
+  2. Author the implementation source files DIRECTLY into this working directory
+     (this exact directory is what the acceptance gate scans). Write only the
+     source files you author here -- do NOT clone or check out the whole
+     repository into this directory.
+  3. Using the GitHub MCP server, commit and push the SAME files to the feature
+     branch on the target repository. Local working directory and the pushed
+     branch must contain identical content.
+  4. Leave no incomplete-work markers in any file you author (no placeholder
+     markers such as the ones listed in this job's acceptance gate). Finish
+     every file completely before completing.
+  5. If you smoke-test the code, do it WITHOUT leaving anything running:
+       - PREFER an in-process check (import the app / use the framework's test
+         client) -- this starts no server and cannot leave a process behind.
+       - If you must start a real server, pick a fixed PORT, disable auto-reload,
+         start it in its own process group, then tear it down by PORT and by
+         PROCESS GROUP (never by a single saved PID, since reloaders spawn worker
+         children with different PIDs):
+            lsof -ti tcp:<PORT> | xargs -r kill -9
+            [ -n "$SVR_PGID" ] && kill -- -"$SVR_PGID" 2>/dev/null || true
+         Then verify `lsof -ti tcp:<PORT>` prints nothing before finishing.
+     Do not leave any server or background process alive when the job ends.
+  6. Report the branch name and commit URL, then signal completion:
+     mc done --summary "Implemented {story_title} on feature branch"
+
+  Iteration {iteration}/{max_iterations}. Previous: {last_summary}

@@ -1,0 +1,39 @@
+type: deliver
+description: Generic delivery stage. Open a pull request for the validated branch, targeting the integration branch, ready to merge. Domain-neutral; subject and target repo enter via the backlog item and runtime config.
+domain: neutral
+context:
+  references: []
+  skills: []
+  upstream_artifacts: []
+loop:
+  mode: interval
+  interval_sec: 0
+  max_iterations: 2
+  iteration_timeout_sec: 1800
+  overall_timeout_sec: 3600
+  done_when:
+    # Outcome gate: at least one OPEN PR on the target repo targets mc_webhook_test.
+    - check: 'bash "$HOME/mission-control/scripts/gate_pr_open.sh" mc_webhook_test'
+      timeout_sec: 120
+  on_max_reached: exhausted
+prompt_template: |
+  You are a delivery agent. Package the validated branch and open a pull request
+  on the target repository (GitHub MCP server), ready for review/merge.
+
+  Inputs (from the backlog item):
+  - Story: {story_title}
+  - Details: {story_description}
+  - Acceptance: {acceptance}
+
+  Steps:
+  1. Confirm the candidate feature branch exists and contains the validated work.
+  2. Open a pull request on the target repository:
+     - head: the feature branch
+     - base: mc_webhook_test  (never the default/main branch)
+     - title: a concise summary of the delivered story
+     - body: what changed, how it was validated, and any follow-ups
+  3. Reference the related issue(s) in the PR body (e.g. "Closes #N").
+  4. Report the PR URL, then signal completion:
+     mc done --summary "Opened PR for {story_title} into mc_webhook_test"
+
+  Iteration {iteration}/{max_iterations}. Previous: {last_summary}

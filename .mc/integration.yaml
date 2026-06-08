@@ -1,0 +1,19 @@
+# Mission Control Integration Kit manifest for the Mileage Tracker repository.
+# Lets Mission Control discover this repo's own job types so the project can run
+# its plan -> implement -> validate -> deliver -> report chain on itself.
+version: 1
+package: "@raghu-cmyk/mileage-tracker-v5"
+domain: web-app
+subdomain: tax-records
+
+# Project-scoped job types (globs are relative to this .mc/ directory).
+job_types:
+  - path: job-types/*.yaml
+
+# No custom workflows / agents / skills declared yet.
+workflows: []
+agents: []
+skills: []
+
+# Validation commands the gates can resolve by id (extend as needed).
+validation: []

@@ -1,0 +1,50 @@
+type: plan
+description: Generic planning stage. Decompose a requirements document into a backlog of GitHub issues on the target repository. Domain-neutral; the subject and target repo enter via the backlog item and runtime config.
+domain: neutral
+context:
+  references: []
+  skills: []
+  upstream_artifacts: []
+loop:
+  mode: interval
+  interval_sec: 0
+  max_iterations: 3
+  iteration_timeout_sec: 1800
+  overall_timeout_sec: 5400
+  done_when:
+    # Outcome gate: at least 3 issues exist on the target repo ($MC_TARGET_REPO).
+    - check: 'bash "$HOME/mission-control/scripts/gate_min_issues.sh" 3'
+      timeout_sec: 120
+  on_max_reached: exhausted
+prompt_template: |
+  You are a planning agent. Read the requirements and decompose them into a
+  backlog of GitHub issues on the target repository, using the GitHub MCP server.
+
+  Inputs (from the backlog item):
+  - Story: {story_title}
+  - Details: {story_description}
+  - Acceptance: {acceptance}
+
+  Steps:
+  1. Read the requirements document referenced in the details above (fetch it
+     from the target repository via the GitHub MCP server).
+  2. Identify the distinct features / capabilities described in the requirements.
+  3. For each feature, create a GitHub issue on the target repository with:
+     - a clear title naming the feature
+     - a body summarizing scope and acceptance criteria
+     - label: "plan-task"
+  4. Create at least 3 issues covering the highest-priority features.
+  5. Create one additional "Design & Aesthetic" GitHub issue (label: "design")
+     that defines the product's visual design system, so implementation has a
+     consistent look and feel. The issue body MUST cover:
+     - Color scheme: a named palette with hex values and where each is used
+       (primary, surface/background, text, success/warning/error states).
+     - Typography: font families (heading vs body), type scale, and weights.
+     - Layout style: grid/spacing system, navigation pattern, page structure,
+       and responsive behavior.
+     - UI component decisions: buttons, forms/inputs, tables, empty/loading/error
+       states, and accessibility (contrast, focus, labels).
+  6. Report each created issue URL, then signal completion:
+     mc done --summary "Created N planning issues (incl. design) for {story_title}"
+
+  Iteration {iteration}/{max_iterations}. Previous: {last_summary}

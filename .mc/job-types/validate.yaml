@@ -1,0 +1,56 @@
+type: validate
+description: Generic validation stage. Check out a branch, run the application, and confirm it loads/runs without errors. Domain-neutral; subject and target repo enter via the backlog item and runtime config.
+domain: neutral
+context:
+  references: []
+  skills: []
+  upstream_artifacts: []
+loop:
+  mode: interval
+  interval_sec: 15
+  max_iterations: 3
+  iteration_timeout_sec: 1800
+  overall_timeout_sec: 7200
+  done_when:
+    # Evidence gate: the agent writes VALIDATION_PASSED only after the app loads
+    # without errors (smoke run / headless browser check). No file => not done.
+    - check: 'test -f VALIDATION_PASSED'
+      timeout_sec: 30
+  on_max_reached: exhausted
+prompt_template: |
+  You are a validation agent. Verify that the application on the candidate branch
+  runs and loads without errors.
+
+  Inputs (from the backlog item):
+  - Story: {story_title}
+  - Details: {story_description}
+  - Acceptance: {acceptance}
+
+  Steps:
+  1. Obtain the candidate branch's code (via the GitHub MCP server) into this
+     working directory.
+  2. Install dependencies.
+  3. PREFER an in-process check that needs NO long-lived server: use the
+     framework's test client (e.g. FastAPI/Starlette TestClient, or httpx with
+     an ASGI/WSGI transport, or the framework's equivalent) to exercise the entry
+     route and key pages in the SAME process. An in-process check cannot leave a
+     server running, so it cannot hang the job. Use this path whenever possible.
+  4. If — and only if — a real network server is unavoidable, make teardown
+     DETERMINISTIC and independent of tracking individual PIDs (a reloader spawns
+     worker children with different PIDs, which is why saving one PID fails):
+       a. Pick a fixed PORT and DISABLE auto-reload / workers.
+       b. Start it in its own process group and capture the GROUP id, e.g.:
+            python run.py & SVR_PGID=$(ps -o pgid= -p $! | tr -d ' ')
+       c. Probe the entry route and key pages (expect HTTP 200; entry redirects ok).
+       d. TEAR DOWN BY PORT AND BY PROCESS GROUP (never by a single saved PID):
+            lsof -ti tcp:<PORT> | xargs -r kill -9      # every holder of the port
+            [ -n "$SVR_PGID" ] && kill -- -"$SVR_PGID" 2>/dev/null || true
+       e. VERIFY the port is free before continuing: `lsof -ti tcp:<PORT>` must
+          print nothing. Do not finish while any process still holds the port.
+  5. Capture evidence (responses / status codes / startup log) into this directory.
+  6. ONLY if the app loaded cleanly, create a file named VALIDATION_PASSED in this
+     directory containing a one-line result summary. If it failed, do not create
+     the file; instead describe the failure and run: mc fail --error "<reason>".
+  7. On success: mc done --summary "Validated {story_title}: app loads without errors"
+
+  Iteration {iteration}/{max_iterations}. Previous: {last_summary}

@@ -1,0 +1,59 @@
+type: report
+description: Generic build-report stage. After a delivery chain completes, gather Mission Control job records, backlog/issue mapping, and repository stats, and produce a PDF build report. Domain-neutral; subject and target repo enter via the backlog item and runtime config.
+domain: neutral
+context:
+  references: []
+  skills: []
+  upstream_artifacts: []
+loop:
+  mode: interval
+  interval_sec: 0
+  max_iterations: 3
+  iteration_timeout_sec: 1800
+  overall_timeout_sec: 5400
+  done_when:
+    # Outcome gate: a non-trivial PDF build report was produced in this workspace.
+    - check: 'test -n "$(find docs/build-reports -name "report-*.pdf" -size +2k 2>/dev/null | head -n 1)"'
+      timeout_sec: 60
+  on_max_reached: exhausted
+prompt_template: |
+  You are a build-reporting agent. Produce a PDF build report summarizing the
+  delivery chain that just completed for this work item, then commit it to the
+  target repository.
+
+  Inputs (from the backlog item):
+  - Story: {story_title}
+  - Details: {story_description}
+  - Acceptance: {acceptance}
+
+  Data sources (read at runtime; resolve the environment variables in a shell):
+  - Mission Control job records: "$MC_HOME/workspaces/<job_id>/status.json"
+    (each has spec.type, spec.story_id, status.started_at, and a transitions list
+    with ISO timestamps -- derive per-job duration from first->last transition).
+  - Agent activity logs (verbose): "$MC_HOME/logs/<job_id>.log".
+  - Backlog (requirements/items): under "$MC_PROJECT/backlog".
+  - GitHub issues/PRs on the target repository: via the GitHub MCP server.
+  - Application code stats: from the delivered branch of the target repository.
+
+  The PDF report MUST contain these sections:
+  1. Job summary table: every job in this build with job id, type, state, and
+     duration (and the chain order plan -> implement -> validate -> deliver -> report).
+  2. Requirements -> GitHub issues mapping: each planned feature/issue and the
+     requirement(s) it covers.
+  3. Per-job agent activity log (verbose): a readable excerpt of each job's log.
+  4. Validation results for each stage (gate outcomes / VALIDATION evidence).
+  5. Total build time: earliest job start to latest job finish across the chain.
+  6. Stats: total files, total lines of code, and number of tests passing.
+
+  Steps:
+  a. Install a PDF library if needed (e.g. reportlab) and gather the data above.
+  b. Generate the report and save it to:
+       docs/build-reports/report-<UTC_TIMESTAMP>.pdf
+     (create the docs/build-reports directory in this working directory).
+  c. Commit and push the PDF to docs/build-reports/ on the target repository via
+     the GitHub MCP server.
+  d. Do not leave any background process running.
+  e. Report the saved path and commit URL, then signal completion:
+     mc done --summary "Generated build report for {story_title}"
+
+  Iteration {iteration}/{max_iterations}. Previous: {last_summary}
