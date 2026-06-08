@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+{% if success %}<div class="success">{{ success }}</div>{% endif %}
+
+<dl>
+  <dt>Trip date</dt>
+  <dd>{{ trip.trip_date.isoformat() }}</dd>
+
+  <dt>Origin</dt>
+  <dd>{{ trip.origin }}</dd>
+
+  <dt>Destination</dt>
+  <dd>{{ trip.destination }}</dd>
+
+  <dt>Business purpose</dt>
+  <dd>{{ trip.business_purpose }}</dd>
+
+  <dt>Miles</dt>
+  <dd>{{ trip.miles }}</dd>
+
+  <dt>Category</dt>
+  <dd>{{ trip.category.display_name }} ({{ trip.category.code }})</dd>
+
+  <dt>Vehicle</dt>
+  <dd><a href="/vehicles/{{ trip.vehicle.id }}">{{ trip.vehicle.display_name }}</a></dd>
+
+  {% if trip.odometer_start is not none %}
+  <dt>Odometer start</dt>
+  <dd>{{ trip.odometer_start }}</dd>
+  {% endif %}
+
+  {% if trip.odometer_end is not none %}
+  <dt>Odometer end</dt>
+  <dd>{{ trip.odometer_end }}</dd>
+  {% endif %}
+
+  <dt>Recorded at</dt>
+  <dd>{{ trip.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</dd>
+
+  <dt>Contemporaneousness</dt>
+  <dd>
+    {% if trip.is_late_entered() %}
+    <span class="badge late">Late-entered</span> — entered more than 7 days after the trip date.
+    {% else %}
+    <span class="badge">On time</span>
+    {% endif %}
+  </dd>
+</dl>
+
+<style>
+  dl { display: grid; grid-template-columns: 10rem 1fr; gap: .5rem 1rem; }
+  dt { font-weight: 600; color: #64748b; }
+  dd { margin: 0; }
+</style>
+
+<section class="receipts-section">
+  <h2>Receipts</h2>
+  {% if receipts %}
+  <ul class="receipt-grid">
+    {% for receipt in receipts %}
+    <li class="receipt-card">
+      <a href="/receipts/{{ receipt.id }}/image" target="_blank" rel="noopener">
+        <img
+          src="/receipts/{{ receipt.id }}/image"
+          alt="Receipt {{ receipt.original_filename }}"
+          class="receipt-thumb"
+          loading="lazy"
+        />
+      </a>
+      <div class="receipt-meta">
+        <span class="receipt-name">{{ receipt.original_filename }}</span>
+        <span class="receipt-size">{{ (receipt.byte_size / 1024)|round(1) }} KB</span>
+        <span class="receipt-date">{{ receipt.uploaded_at.strftime('%Y-%m-%d') }}</span>
+      </div>
+      <form method="post" action="/trips/{{ trip.id }}/receipts/{{ receipt.id }}/delete" class="receipt-delete-form">
+        <button type="submit" class="button danger small" aria-label="Delete receipt {{ receipt.original_filename }}">Remove</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state receipt-empty">
+    <p>No receipts attached to this trip yet.</p>
+    <p class="hint">Upload toll, parking, or fuel receipts to strengthen §274(d) substantiation.</p>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/trips/{{ trip.id }}/receipts" enctype="multipart/form-data" class="receipt-upload-form">
+    <label class="upload-zone" for="receipt_file">
+      <span class="upload-icon" aria-hidden="true">📷</span>
+      <span class="upload-label">Add receipt image</span>
+      <span class="upload-hint">JPEG, PNG, WebP, or HEIC — max 10 MB</span>
+      <input
+        type="file"
+        id="receipt_file"
+        name="receipt_file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
+        capture="environment"
+        required
+      />
+    </label>
+    <button type="submit" class="button">Upload receipt</button>
+  </form>
+</section>
+
+<div class="actions">
+  <a class="button" href="/trips/{{ trip.id }}/edit">Edit</a>
+  <a class="button danger" href="/trips/{{ trip.id }}/delete">Delete</a>
+  <a class="button secondary" href="/trips">Back to trips</a>
+</div>
+{% endblock %}

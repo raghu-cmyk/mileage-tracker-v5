@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="muted">Welcome, <strong>{{ user.username }}</strong>. Record trips with full IRS §274(d) substantiation.</p>
+  </div>
+  <a class="button" href="/trips/new">Add trip</a>
+</div>
+
+<h2>Recent trips</h2>
+{% if recent_trips %}
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Route</th>
+        <th class="num">Miles</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for trip in recent_trips %}
+      <tr class="{% if trip.is_late_entered() %}late-entered{% endif %}">
+        <td><a href="/trips/{{ trip.id }}">{{ trip.trip_date.isoformat() }}</a></td>
+        <td>{{ trip.origin }} → {{ trip.destination }}</td>
+        <td class="num">{{ trip.miles }}</td>
+        <td>{{ trip.category.display_name }}{% if trip.is_late_entered() %} <span class="badge late">Late-entered</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="card-list">
+  {% for trip in recent_trips %}
+  <article class="trip-card">
+    <div class="card-header">
+      <a href="/trips/{{ trip.id }}">{{ trip.trip_date.isoformat() }}</a>
+      <span class="mono">{{ trip.miles }} mi</span>
+    </div>
+    <dl>
+      <dt>Route</dt><dd>{{ trip.origin }} → {{ trip.destination }}</dd>
+      <dt>Category</dt>
+      <dd>{{ trip.category.display_name }}{% if trip.is_late_entered() %} <span class="badge late">Late-entered</span>{% endif %}</dd>
+    </dl>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="icon" aria-hidden="true">📋</div>
+  <p><strong>No trips yet</strong></p>
+  <p class="muted">Start logging mileage to build your substantiation record.</p>
+</div>
+{% endif %}
+
+<div class="actions">
+  <a class="button secondary" href="/trips">View all trips</a>
+  <a class="button secondary" href="/summary">Year-end summary</a>
+  <a class="button secondary" href="/vehicles">Manage vehicles</a>
+</div>
+
+<h2>Your vehicles</h2>
+{% if vehicles %}
+<div class="stat-grid">
+  {% for vehicle in vehicles %}
+  <a href="/vehicles/{{ vehicle.id }}" class="stat-card" style="text-decoration: none; color: inherit;">
+    <div class="label">Vehicle</div>
+    <div class="value" style="font-size: var(--text-lg);">{{ vehicle.display_name }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">No vehicles yet. <a href="/vehicles/new">Add your first vehicle</a>.</p>
+{% endif %}
+{% endblock %}

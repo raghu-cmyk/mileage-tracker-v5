@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Delete trip?</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<p>This will permanently delete the trip on <strong>{{ trip.trip_date.isoformat() }}</strong>
+from <strong>{{ trip.origin }}</strong> to <strong>{{ trip.destination }}</strong>
+({{ trip.miles }} miles). The deletion will be recorded in the audit trail.</p>
+
+<form method="post" action="/trips/{{ trip.id }}/delete">
+  <input type="hidden" name="confirm" value="yes">
+  <div class="actions">
+    <button type="submit" class="danger">Yes, delete this trip</button>
+    <a class="button secondary" href="/trips/{{ trip.id }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
