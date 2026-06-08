@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<form method="post" action="{% if vehicle %}/vehicles/{{ vehicle.id }}/edit{% else %}/vehicles/new{% endif %}">
+  <label for="display_name">Display name</label>
+  <input id="display_name" name="display_name" required value="{{ vehicle.display_name if vehicle else '' }}">
+  <label for="description">Description</label>
+  <textarea id="description" name="description" placeholder="Make, model, year, notes">{{ vehicle.description if vehicle else '' }}</textarea>
+  <button type="submit">{% if vehicle %}Save changes{% else %}Create vehicle{% endif %}</button>
+  <a class="button secondary" href="{% if vehicle %}/vehicles/{{ vehicle.id }}{% else %}/vehicles{% endif %}">Cancel</a>
+</form>
+{% endblock %}
