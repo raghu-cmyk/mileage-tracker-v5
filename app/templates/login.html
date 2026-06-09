@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-card">
+  <h1>Sign in</h1>
+  {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/login">
+    <label for="username">Username</label>
+    <input id="username" name="username" required autocomplete="username" aria-required="true">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required autocomplete="current-password" aria-required="true">
+    <div class="actions">
+      <button type="submit">Sign in</button>
+    </div>
+  </form>
+  {% if registration_open %}
+  <p class="muted" style="text-align: center; margin-top: var(--space-6);">No account yet? <a href="/register">Register</a></p>
+  {% endif %}
+</div>
+{% endblock %}

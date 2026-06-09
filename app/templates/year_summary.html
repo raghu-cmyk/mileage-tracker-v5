@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Year-end summary — {{ summary.tax_year if summary else tax_year }}</h1>
+  {% if summary %}
+  <div class="actions" style="margin-top: 0;">
+    <a class="button secondary" href="/export/csv/{{ summary.tax_year }}">Download CSV</a>
+    <a class="button secondary" href="/export/pdf/{{ summary.tax_year }}">Download PDF</a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" action="/summary" class="filter-bar">
+  <div>
+    <label for="tax_year">Tax year</label>
+    <select id="tax_year" name="tax_year">
+      {% for year in available_years %}
+      <option value="{{ year }}" {% if year == (summary.tax_year if summary else tax_year) %}selected{% endif %}>{{ year }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="actions" style="align-self: end;">
+    <button type="submit">View summary</button>
+  </div>
+</form>
+
+{% if error %}
+<div class="error" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if summary %}
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="label">Total logged miles</div>
+    <div class="value">{{ summary.total_miles }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Deductible miles</div>
+    <div class="value">{{ summary.deductible_miles }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total deduction</div>
+    <div class="value">{{ format_cents(summary.total_deduction_cents) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Business-use %</div>
+    <div class="value">{% if summary.business_use_percentage is not none %}{{ summary.business_use_percentage }}%{% else %}—{% endif %}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Late-entered trips</div>
+    <div class="value">{{ summary.late_entered_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Personal miles (excluded)</div>
+    <div class="value">{{ summary.personal_miles }}</div>
+  </div>
+</div>
+
+<section>
+  <h2>By category</h2>
+  {% if summary.by_category %}
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th class="num">Miles</th>
+          <th class="num">Deductible amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in summary.by_category %}
+        <tr>
+          <td>{{ row.display_name }}{% if not row.is_deductible %} <span class="badge">Personal</span>{% endif %}</td>
+          <td class="num">{{ row.total_miles }}</td>
+          <td class="num">{% if row.is_deductible %}{{ format_cents(row.total_deduction_cents) }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-list">
+    {% for row in summary.by_category %}
+    <article class="summary-card">
+      <dl>
+        <dt>Category</dt><dd>{{ row.display_name }}</dd>
+        <dt>Miles</dt><dd class="mono">{{ row.total_miles }}</dd>
+        <dt>Deduction</dt>
+        <dd class="mono">{% if row.is_deductible %}{{ format_cents(row.total_deduction_cents) }}{% else %}—{% endif %}</dd>
+      </dl>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No trips recorded for {{ summary.tax_year }}.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Per-trip deductions</h2>
+  {% if summary.trip_deductions %}
+  <div class="data-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th class="num">Miles</th>
+          <th class="num">Rate</th>
+          <th class="num">Deduction</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in summary.trip_deductions %}
+        <tr class="{% if row.is_late_entered %}late-entered{% endif %}">
+          <td><a href="/trips/{{ row.trip_id }}">{{ row.trip_date.isoformat() }}</a>{% if row.is_late_entered %} <span class="badge late">Late-entered</span>{% endif %}</td>
+          <td>{{ row.category_display_name }}</td>
+          <td class="num">{{ row.miles }}</td>
+          <td class="num">{% if row.rate_cents_per_mile is not none %}{{ format_rate(row.rate_cents_per_mile) }}¢/mi{% else %}—{% endif %}</td>
+          <td class="num">{% if row.is_deductible %}{{ format_cents(row.deduction_cents) }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-list">
+    {% for row in summary.trip_deductions %}
+    <article class="summary-card">
+      <div class="card-header">
+        <a href="/trips/{{ row.trip_id }}">{{ row.trip_date.isoformat() }}</a>
+        {% if row.is_late_entered %}<span class="badge late">Late-entered</span>{% endif %}
+      </div>
+      <dl>
+        <dt>Category</dt><dd>{{ row.category_display_name }}</dd>
+        <dt>Miles</dt><dd class="mono">{{ row.miles }}</dd>
+        <dt>Rate</dt><dd class="mono">{% if row.rate_cents_per_mile is not none %}{{ format_rate(row.rate_cents_per_mile) }}¢/mi{% else %}—{% endif %}</dd>
+        <dt>Deduction</dt><dd class="mono">{% if row.is_deductible %}{{ format_cents(row.deduction_cents) }}{% else %}—{% endif %}</dd>
+      </dl>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No trips recorded for {{ summary.tax_year }}.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

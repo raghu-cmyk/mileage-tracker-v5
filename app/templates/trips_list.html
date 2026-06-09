@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Trips</h1>
+  <a class="button" href="/trips/new">Add trip</a>
+</div>
+{% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+{% if success %}<div class="success" role="status">{{ success }}</div>{% endif %}
+
+<form method="get" action="/trips" class="filter-bar">
+  <div>
+    <label for="vehicle_id">Vehicle</label>
+    <select id="vehicle_id" name="vehicle_id">
+      <option value="">All vehicles</option>
+      {% for vehicle in vehicles %}
+      <option value="{{ vehicle.id }}" {% if filters.vehicle_id == vehicle.id %}selected{% endif %}>{{ vehicle.display_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="category_id">Category</label>
+    <select id="category_id" name="category_id">
+      <option value="">All categories</option>
+      {% for category in categories %}
+      <option value="{{ category.id }}" {% if filters.category_id == category.id %}selected{% endif %}>{{ category.display_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="date_from">From date</label>
+    <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}">
+  </div>
+  <div>
+    <label for="date_to">To date</label>
+    <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}">
+  </div>
+  <div class="actions" style="grid-column: 1 / -1;">
+    <button type="submit">Apply filters</button>
+    <a class="button secondary" href="/trips">Clear</a>
+  </div>
+</form>
+
+{% if trips %}
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Vehicle</th>
+        <th>Route</th>
+        <th class="num">Miles</th>
+        <th>Category</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for trip in trips %}
+      <tr class="{% if trip.is_late_entered() %}late-entered{% endif %}">
+        <td>{{ trip.trip_date.isoformat() }}</td>
+        <td>{{ trip.vehicle.display_name }}</td>
+        <td>{{ trip.origin }} → {{ trip.destination }}</td>
+        <td class="num">{{ trip.miles }}</td>
+        <td>
+          {{ trip.category.display_name }}
+          {% if trip.is_late_entered() %}<span class="badge late">Late-entered</span>{% endif %}
+        </td>
+        <td><a href="/trips/{{ trip.id }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="card-list" aria-label="Trips list">
+  {% for trip in trips %}
+  <article class="trip-card">
+    <div class="card-header">
+      <span>{{ trip.trip_date.isoformat() }}</span>
+      <a href="/trips/{{ trip.id }}">View</a>
+    </div>
+    <dl>
+      <dt>Vehicle</dt><dd>{{ trip.vehicle.display_name }}</dd>
+      <dt>Route</dt><dd>{{ trip.origin }} → {{ trip.destination }}</dd>
+      <dt>Miles</dt><dd class="mono">{{ trip.miles }}</dd>
+      <dt>Category</dt>
+      <dd>
+        {{ trip.category.display_name }}
+        {% if trip.is_late_entered() %}<span class="badge late">Late-entered</span>{% endif %}
+      </dd>
+    </dl>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="icon" aria-hidden="true">🛣️</div>
+  <p><strong>No trips yet</strong></p>
+  <p class="muted">Log your first trip to start building your IRS substantiation record.</p>
+  <div class="actions" style="justify-content: center;">
+    <a class="button" href="/trips/new">Log your first trip</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form method="post" action="{% if trip %}/trips/{{ trip.id }}/edit{% else %}/trips/new{% endif %}">
+  <label for="trip_date">Trip date</label>
+  <input type="date" id="trip_date" name="trip_date" required
+    value="{% if trip %}{{ trip.trip_date.isoformat() }}{% endif %}">
+
+  <label for="origin">Origin</label>
+  <input type="text" id="origin" name="origin" required maxlength="256"
+    value="{% if trip %}{{ trip.origin }}{% endif %}">
+
+  <label for="destination">Destination</label>
+  <input type="text" id="destination" name="destination" required maxlength="256"
+    value="{% if trip %}{{ trip.destination }}{% endif %}">
+
+  <label for="business_purpose">Business purpose</label>
+  <textarea id="business_purpose" name="business_purpose" required>{% if trip %}{{ trip.business_purpose }}{% endif %}</textarea>
+
+  <label for="miles">Miles</label>
+  <input type="number" id="miles" name="miles" step="0.01" min="0.01" required
+    value="{% if trip %}{{ trip.miles }}{% endif %}">
+
+  <label for="category_id">Category</label>
+  <select id="category_id" name="category_id" required>
+    <option value="">Select a category</option>
+    {% for category in categories %}
+    <option value="{{ category.id }}" {% if trip and trip.category_id == category.id %}selected{% endif %}>
+      {{ category.display_name }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <label for="vehicle_id">Vehicle</label>
+  <select id="vehicle_id" name="vehicle_id" required>
+    <option value="">Select a vehicle</option>
+    {% for vehicle in vehicles %}
+    <option value="{{ vehicle.id }}" {% if trip and trip.vehicle_id == vehicle.id %}selected{% endif %}>
+      {{ vehicle.display_name }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <label for="odometer_start">Odometer start (optional)</label>
+  <input type="number" id="odometer_start" name="odometer_start" min="0"
+    value="{% if trip and trip.odometer_start is not none %}{{ trip.odometer_start }}{% endif %}">
+
+  <label for="odometer_end">Odometer end (optional)</label>
+  <input type="number" id="odometer_end" name="odometer_end" min="0"
+    value="{% if trip and trip.odometer_end is not none %}{{ trip.odometer_end }}{% endif %}">
+
+  <div class="actions">
+    <button type="submit">{% if trip %}Save changes{% else %}Create trip{% endif %}</button>
+    <a class="button secondary" href="{% if trip %}/trips/{{ trip.id }}{% else %}/trips{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
